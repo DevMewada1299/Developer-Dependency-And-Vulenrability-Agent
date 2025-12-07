@@ -15,11 +15,14 @@ def main():
     a.add_argument("--requirements")
     a.add_argument("--python-version", default="3.11")
     a.add_argument("--out-dir", default="data")
+    a.add_argument("--prompt-style", choices=["compact_json", "react_json", "deliberate_json", "strict_schema"], default="compact_json")
+    a.add_argument("--planning-mode", choices=["single", "consensus-3", "consensus-5"], default="single")
+    a.add_argument("--verify", action="store_true")
     args = parser.parse_args()
     if args.cmd == "scan":
         run_scan(args.requirements, args.python_version, args.out_dir)
     if args.cmd == "advise":
-        out = advise(args.query, args.provider, args.requirements, args.python_version, args.out_dir)
+        out = advise(args.query, args.provider, args.requirements, args.python_version, args.out_dir, prompt_style=args.prompt_style, planning_mode=args.planning_mode, verify=args.verify)
         print(out["answer_text"]) 
 
 if __name__ == "__main__":
