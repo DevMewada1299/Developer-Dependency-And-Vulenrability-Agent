@@ -12,6 +12,9 @@ def _model_name(provider: str) -> str:
         return os.environ.get("PHI_MODEL", "phi3")
     raise ValueError("unsupported provider")
 
+def model_info(provider: str) -> dict:
+    return {"provider": provider, "model": _model_name(provider), "base": _ollama_url()}
+
 def generate(provider: str, prompt: str) -> str:
     url = f"{_ollama_url()}/api/generate"
     model = _model_name(provider)
