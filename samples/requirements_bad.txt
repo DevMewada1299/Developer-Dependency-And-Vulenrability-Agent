@@ -1,0 +1,26 @@
+urllib3==1.25.8
+urllib3>=1.25.0,<1.26
+requests==2.19.1
+requests>=2.28,<2.31
+requests==2.31.0
+Pillow==6.2.1
+Django==2.2.10
+cryptography==2.8
+PyYAML==5.3.1
+lxml==4.1.1
+Jinja2==2.11.2
+numpy==2.0.0rc1
+pandas==2.3.0rc1
+fastapi[dev]==0.92.0
+pydantic>=2.0a1,<2.1
+httpx==0.23.0
+importlib-metadata==4.13.0; python_version<"3.8"
+badpkg==abc
+python==3.11.0
+-e .
+-e git+https://github.com/pallets/flask.git@2.0.0
+git+https://github.com/psf/requests.git@v2.32.0
+urllib3==1.25.8
+tornado==6.0.3
+setuptools==40.0.0
+-c constraints.txt

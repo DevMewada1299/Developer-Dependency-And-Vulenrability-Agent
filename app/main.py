@@ -5,10 +5,11 @@ import streamlit as st
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 import importlib
-for m in ["src.agents.orchestrator", "src.llm.client"]:
+for m in ["src.agents.orchestrator", "src.llm.client", "src.agents.dependency_agent"]:
     if m in sys.modules:
         del sys.modules[m]
 import src.llm.client as llm_client
+import src.agents.dependency_agent as dependency_agent
 import src.agents.orchestrator as orchestrator
 from src.agents.orchestrator import advise
 
@@ -65,7 +66,7 @@ if st.session_state.get("view") == "Chat":
                     st.write({"tool": c.get("tool"), "args": c.get("args"), "duration_ms": c.get("duration_ms"), "stats": c.get("stats"), "fixed": c.get("fixed"), "packages_count": c.get("packages_count"), "releases_count": c.get("releases_count")})
             with st.expander("LLM Stats"):
                 meta = out.get("meta") or {}
-                st.write({"provider": meta.get("provider"), "model": meta.get("model"), "llm": meta.get("llm"), "prompt_style": meta.get("prompt_style"), "planning_mode": meta.get("planning_mode"), "verify_ms": meta.get("verify_ms")})
+                st.write({"provider": meta.get("provider"), "model": meta.get("model"), "llm": meta.get("llm"), "prompt_style": meta.get("prompt_style"), "planning_mode": meta.get("planning_mode"), "verify_ms": meta.get("verify_ms"), "guardrails_blocked": meta.get("guardrails_blocked"), "guardrails_matches": meta.get("guardrails_matches"), "guardrails_scope": meta.get("guardrails_scope")})
 
 if st.session_state.get("view") == "Stats":
     from src.storage.db import fetch_recent_sessions, fetch_tool_calls

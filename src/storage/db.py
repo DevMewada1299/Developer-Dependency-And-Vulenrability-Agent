@@ -33,6 +33,28 @@ def init_db():
         )
     """)
     conn.commit()
+    try:
+        cols = {r[1] for r in cur.execute("PRAGMA table_info(sessions)")}
+        for col in ["summ_cache_hit", "verify_cache_hit", "plan_cache_hit"]:
+            if col not in cols:
+                cur.execute(f"ALTER TABLE sessions ADD COLUMN {col} INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS prompt_cache (
+            key TEXT PRIMARY KEY,
+            ts INTEGER,
+            provider TEXT,
+            model TEXT,
+            style TEXT,
+            prompt TEXT,
+            response TEXT,
+            duration_ms INTEGER
+        )
+    """)
+    conn.commit()
     conn.close()
 
 def record_session(meta: dict, plan: list, results: list, answer_text: str):
@@ -50,9 +72,9 @@ def record_session(meta: dict, plan: list, results: list, answer_text: str):
     verify_ms = meta.get("verify_ms", 0)
     answer_len = len(answer_text or "")
     cur.execute("""
-        INSERT INTO sessions (ts, provider, model, prompt_style, planning_mode, plan_ms, summarize_ms, verify_ms, answer_len)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (ts, provider, model, prompt_style, planning_mode, plan_ms, summarize_ms, verify_ms, answer_len))
+        INSERT INTO sessions (ts, provider, model, prompt_style, planning_mode, plan_ms, summarize_ms, verify_ms, answer_len, summ_cache_hit, verify_cache_hit, plan_cache_hit)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (ts, provider, model, prompt_style, planning_mode, plan_ms, summarize_ms, verify_ms, answer_len, int(bool(meta.get("summ_cache_hit"))), int(bool(meta.get("verify_cache_hit"))), int(bool(meta.get("plan_cache_hit")))))
     session_id = cur.lastrowid
     for c in meta.get("tool_calls") or []:
         args_text = json.dumps(c.get("args"), ensure_ascii=False)
@@ -67,10 +89,10 @@ def record_session(meta: dict, plan: list, results: list, answer_text: str):
 def fetch_recent_sessions(limit: int = 50) -> list:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT id, ts, provider, model, prompt_style, planning_mode, plan_ms, summarize_ms, verify_ms, answer_len FROM sessions ORDER BY id DESC LIMIT ?", (limit,))
+    cur.execute("SELECT id, ts, provider, model, prompt_style, planning_mode, plan_ms, summarize_ms, verify_ms, answer_len, summ_cache_hit, verify_cache_hit, plan_cache_hit FROM sessions ORDER BY id DESC LIMIT ?", (limit,))
     rows = cur.fetchall()
     conn.close()
-    cols = ["id", "ts", "provider", "model", "prompt_style", "planning_mode", "plan_ms", "summarize_ms", "verify_ms", "answer_len"]
+    cols = ["id", "ts", "provider", "model", "prompt_style", "planning_mode", "plan_ms", "summarize_ms", "verify_ms", "answer_len", "summ_cache_hit", "verify_cache_hit", "plan_cache_hit"]
     return [dict(zip(cols, r)) for r in rows]
 
 def fetch_tool_calls(session_id: int) -> list:
@@ -82,3 +104,20 @@ def fetch_tool_calls(session_id: int) -> list:
     cols = ["tool", "duration_ms", "args", "stats_json"]
     return [dict(zip(cols, r)) for r in rows]
 
+def cache_get_response(key: str) -> dict | None:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT response, duration_ms, ts, provider, model, style FROM prompt_cache WHERE key=?", (key,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"response": row[0], "duration_ms": row[1], "ts": row[2], "provider": row[3], "model": row[4], "style": row[5]}
+
+def cache_set_response(key: str, provider: str, model: str, style: str, prompt: str, response: str, duration_ms: int):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    ts = int(time.time())
+    cur.execute("REPLACE INTO prompt_cache (key, ts, provider, model, style, prompt, response, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (key, ts, provider, model, style, prompt, response, duration_ms))
+    conn.commit()
+    conn.close()
