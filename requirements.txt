@@ -1,0 +1,6 @@
+streamlit
+requests
+packaging
+pip-audit
+jupyter
+pdfplumber
