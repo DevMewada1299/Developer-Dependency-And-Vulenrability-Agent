@@ -93,7 +93,7 @@ DECIDE: Option C - User asked "should I", implying they want enough info to make
 
 OUTPUT: [{"tool": "osv.query", "args": {"name": "requests", "version": "2.20.0"}}, {"tool": "pypi.info", "args": {"name": "requests"}}]
 
-Now respond to the user query. Show your deliberation, then output ONLY the JSON array on the final line.""""
+Now respond to the user query. Show your deliberation, then output ONLY the JSON array on the final line."""
     elif style == "strict_schema":
         sys = "Return only JSON conforming to [{tool: string, args: object}] with keys present."
     else:
