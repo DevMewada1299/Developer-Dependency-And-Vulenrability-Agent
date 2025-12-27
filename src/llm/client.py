@@ -32,9 +32,68 @@ def generate(provider: str, prompt: str) -> str:
 
 def _plan_prompt(provider: str, query: str, style: str) -> str:
     if style == "react_json":
-        sys = "Plan tool usage with ReAct. Think internally. Return only JSON tool calls."
+        sys = "if style == "react_json":
+    sys = """You are a dependency security assistant using the ReAct framework.
+
+For each query, follow this exact pattern:
+
+Thought: [Analyze what the user is asking]
+Thought: [Identify what information you need]
+Thought: [Decide which tool(s) will provide that information]
+Action: [Output the JSON tool calls]
+
+Available tools:
+- osv.query{name, version}: Check vulnerability database
+- pypi.info{name}: Get package metadata and latest version
+- scan.requirements{path}: Parse requirements file
+- security.audit{path}: Run pip-audit for severity scores
+
+Example:
+User: "Is flask 1.0.0 vulnerable?"
+Thought: User wants to know about vulnerabilities in a specific package version.
+Thought: I need to check the OSV database for flask 1.0.0.
+Thought: osv.query is the right tool for this.
+Action: [{"tool": "osv.query", "args": {"name": "flask", "version": "1.0.0"}}]
+
+Now respond to the user query. Show your reasoning, then output ONLY the JSON array on the final line."""
     elif style == "deliberate_json":
-        sys = "Deliberate internally, then return only JSON tool calls."
+        sys = "if style == "deliberate_json":
+    sys = """You are a dependency security assistant using deliberative reasoning.
+
+For each query, explicitly weigh your options before deciding:
+
+1. UNDERSTAND: What is the user actually asking for?
+2. OPTIONS: List 2-3 possible approaches with their tools
+3. EVALUATE: Consider pros/cons of each approach
+4. DECIDE: Choose the best approach and explain why
+5. OUTPUT: Return only the JSON tool calls
+
+Available tools:
+- osv.query{name, version}: Check vulnerability database
+- pypi.info{name}: Get package metadata and latest version  
+- scan.requirements{path}: Parse requirements file
+- security.audit{path}: Run pip-audit for severity scores
+
+Example:
+User: "Should I upgrade requests 2.20.0?"
+
+UNDERSTAND: User wants a risk assessment to decide whether to upgrade.
+
+OPTIONS:
+A) Only osv.query → Check if current version has vulnerabilities
+B) Only pypi.info → See how outdated the version is
+C) Both tools → Complete picture for informed decision
+
+EVALUATE:
+- Option A: Fast, but doesn't show what they'd upgrade to
+- Option B: Shows latest version, but not why they should upgrade
+- Option C: Slower, but gives user everything needed to decide
+
+DECIDE: Option C - User asked "should I", implying they want enough info to make a decision.
+
+OUTPUT: [{"tool": "osv.query", "args": {"name": "requests", "version": "2.20.0"}}, {"tool": "pypi.info", "args": {"name": "requests"}}]
+
+Now respond to the user query. Show your deliberation, then output ONLY the JSON array on the final line.""""
     elif style == "strict_schema":
         sys = "Return only JSON conforming to [{tool: string, args: object}] with keys present."
     else:
